@@ -13,19 +13,19 @@ MODULE_LICENSE("GPL");
 
 int num_times_opened;
 int num_times_closed;
-void *buffer;
+static void *buffer;
 
 int chardev_test_open(struct inode *dev, struct file* f) 
 {
     num_times_opened++;
-    printk(KERN_ALERT "Num times opened: %d\n", num_times_opened); 
+    printk(KERN_NOTICE "Num times opened: %d\n", num_times_opened); 
     return 0;
 }
 
 int chardev_test_close(struct inode *dev , struct file *f)
 {
     num_times_closed++;
-    printk(KERN_ALERT "Num times closed: %d\n", num_times_closed);
+    printk(KERN_NOTICE "Num times closed: %d\n", num_times_closed);
     return 0;
 }
 
@@ -33,10 +33,13 @@ ssize_t chardev_test_write(struct file *f,
                            const char __user *user_buf, 
                            size_t buf_size, loff_t *pos)
 {
-    int result = copy_from_user(f, user_buf, buf_size);
+    // handle position differently here
+    int result = copy_from_user(buffer, user_buf, BUFFER_SIZE);
     if(result != 0) {
-        printk(KERN_INFO "Wrote %lu bytes\n", buf_size);
+        printk(KERN_NOTICE "Wrote %d bytes\n", BUFFER_SIZE);
         *pos += buf_size;
+    } else {
+        printk(KERN_ALERT "Failed to write");
     }
     return buf_size;
 }
@@ -47,11 +50,14 @@ ssize_t chardev_test_read(struct file *f,
                           loff_t *pos)
 {
     int bytes_read = 0;
-    int result = copy_to_user(user_buf, f, buf_size);
+    int result = copy_to_user(user_buf, buffer, BUFFER_SIZE);
     if(result != 0) {
-        printk(KERN_INFO "Read %lu bytes\n", buf_size);
+        printk(KERN_NOTICE "Read %d bytes\n", BUFFER_SIZE);
         bytes_read = buf_size;
+    } else {
+        printk(KERN_ALERT "Failed to read");
     }
+
     *pos += buf_size;
    
     return bytes_read;
@@ -76,10 +82,10 @@ int driver_init(void)
         .write   = chardev_test_write,
         .read    = chardev_test_read
     };
-    buffer = kmalloc(BUFFER_SIZE, GFP_KERNEL)
+    buffer = kmalloc(BUFFER_SIZE, GFP_KERNEL);
     if(buffer == NULL) {
-        printk(KERN_ALERT, "Buffer not allocated");
-        exit(1);
+        printk(KERN_ALERT "Buffer not allocated");
+        return -1;
     }
 
     register_chrdev(CHARDEV_TEST_MAJOR_NUMBER, "chardev_test", &fops);
@@ -92,7 +98,7 @@ int driver_init(void)
 void driver_exit(void)
 {
     unregister_chrdev(CHARDEV_TEST_MAJOR_NUMBER, "chardev_test");
-    // kfree
+    kfree(buffer);
     printk(KERN_NOTICE "inside %s function\n", __FUNCTION__);
 }
 
