@@ -14,6 +14,7 @@ MODULE_LICENSE("GPL");
 int num_times_opened;
 int num_times_closed;
 static void *buffer;
+int buff_content_endpos = 0;
 
 
 int chardev_test_open(struct inode *dev, struct file* f) 
@@ -32,38 +33,44 @@ int chardev_test_close(struct inode *dev , struct file *f)
 
 ssize_t chardev_test_write(struct file *f, 
                            const char __user *user_buf, 
-                           size_t buf_size, loff_t *pos)
+                           size_t buf_size, loff_t *offset)
 {
 
-    char *message = buffer;
-    int bytes_written = 0; 
-    // TODO: handle position differently here
-    int result = copy_from_user(message, user_buf, BUFFER_SIZE);
-    if(result == 0) {
-        bytes_written = strlen(message);
-        printk(KERN_NOTICE "Wrote %d bytes: %s\n", bytes_written, message);
-        *pos += bytes_written;
-        buffer_filled += bytes_written;
+    char *buff_contents = buffer;
+    ssize_t bytes_written = 0; 
+    int num_uncopied_bytes;
+
+    if(offset > BUFFER_SIZE) {
+        return -EFAULT;
+    }
+
+    num_uncopied_bytes = copy_from_user(buff_contents, user_buf, BUFFER_SIZE);
+    if(num_uncopied_bytes == 0) {
+        bytes_written = strlen(buff_contents);
+        printk(KERN_NOTICE "Wrote %d bytes: %s\n", bytes_written, buff_contents);
+        *offset += bytes_written;
+        buff_content_endpos += bytes_writen;
     } else {
-        printk(KERN_ALERT "Failed to write %d bytes: %s\n", result, message);
+        printk(KERN_ALERT "Failed to write %d bytes: %s\n", result, buff_contents);
     }
     return bytes_written;
 }
 
 ssize_t chardev_test_read(struct file *f, 
                           char __user *user_buf, 
-                          size_t buf_size, 
-                          loff_t *pos)
+                          size_t buf_size, loff_t *offset)
 {
-    int bytes_read = 0;
-    int result = copy_to_user(user_buf, buffer, BUFFER_SIZE);
-    char *message = buffer;
+    ssize_t bytes_read = 0;
+    int num_uncopied_bytes;     
+    char *buff_contents = buffer;
 
-    if(result == 0) {
-        bytes_read = strlen(message);
+    num_uncopied_bytes = copy_to_user(user_buf, buffer, BUFFER_SIZE);
+    if(num_uncopied_bytes == 0) {
+        bytes_read = strlen(buff_contents);
         printk(KERN_NOTICE "Read %d bytes\n", bytes_read);
-        printk(KERN_NOTICE "Message: %s\n", message);
-        *pos += bytes_read;
+        printk(KERN_NOTICE "Contents: %s\n", buff_contents);
+        *offset += bytes_read;
+        buff_content_endpos += bytes_read;
         return 0;
     } else {
         printk(KERN_ALERT "Failed to read %d bytes\n", result);
