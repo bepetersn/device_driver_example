@@ -37,21 +37,21 @@ ssize_t chardev_test_write(struct file *f,
 {
 
     char *buff_contents = buffer;
-    ssize_t bytes_written = 0; 
-    int num_uncopied_bytes;
+    size_t bytes_written = 0; 
+    int num_failed_bytes;
 
-    if(offset > BUFFER_SIZE) {
+    if(*offset > BUFFER_SIZE) {
         return -EFAULT;
     }
 
-    num_uncopied_bytes = copy_from_user(buff_contents, user_buf, BUFFER_SIZE);
-    if(num_uncopied_bytes == 0) {
+    num_failed_bytes = copy_from_user(buff_contents, user_buf, BUFFER_SIZE);
+    if(num_failed_bytes == 0) {
         bytes_written = strlen(buff_contents);
-        printk(KERN_NOTICE "Wrote %d bytes: %s\n", bytes_written, buff_contents);
+        printk(KERN_NOTICE "Wrote %li bytes: %s\n", bytes_written, buff_contents);
         *offset += bytes_written;
-        buff_content_endpos += bytes_writen;
+        buff_content_endpos += bytes_written;
     } else {
-        printk(KERN_ALERT "Failed to write %d bytes: %s\n", result, buff_contents);
+        printk(KERN_ALERT "Failed to write %d bytes: %s\n", num_failed_bytes, buff_contents);
     }
     return bytes_written;
 }
@@ -60,20 +60,34 @@ ssize_t chardev_test_read(struct file *f,
                           char __user *user_buf, 
                           size_t buf_size, loff_t *offset)
 {
-    ssize_t bytes_read = 0;
-    int num_uncopied_bytes;     
+    int num_bytes_remaining;
+    size_t bytes_read = 0;
+    int num_failed_bytes;     
     char *buff_contents = buffer;
 
-    num_uncopied_bytes = copy_to_user(user_buf, buffer, BUFFER_SIZE);
-    if(num_uncopied_bytes == 0) {
+    // NOTE: user_buf's buf_size > BUFFER_SIZE in practice.
+    // If this was not so, we would need to worry about
+    // about consecutive calls to this function, but 
+    // as it is, we can just give everything to user_buf
+    // in one go every time.
+
+    // Take the end of the buffer content, subtract
+    // our offset, and if anything remains, we can 
+    // give exactly that.
+    num_bytes_remaining = buff_content_endpos - ((int) *offset);
+    if(num_bytes_remaining <= 0) {
+        return 0;
+    }
+    printk(KERN_WARNING "Buff content endpos: %d, Num bytes remaining: %d\n", buff_content_endpos, num_bytes_remaining);
+    num_failed_bytes = copy_to_user(user_buf, buffer, num_bytes_remaining);
+    if(num_failed_bytes == 0) {
         bytes_read = strlen(buff_contents);
-        printk(KERN_NOTICE "Read %d bytes\n", bytes_read);
+        printk(KERN_NOTICE "Read %li bytes\n", bytes_read);
         printk(KERN_NOTICE "Contents: %s\n", buff_contents);
         *offset += bytes_read;
-        buff_content_endpos += bytes_read;
-        return 0;
+        return bytes_read;
     } else {
-        printk(KERN_ALERT "Failed to read %d bytes\n", result);
+        printk(KERN_ALERT "Failed to read %d bytes\n", num_failed_bytes);
         return -1;
     }
    
@@ -86,6 +100,7 @@ loff_t chardev_test_seek(struct file *dev, loff_t offset, int whence)
     // - subtract or add seek if appropriate
     // - or otherwise, set to offset
     // - Deal with out-of-buffer issues
+    printk(KERN_NOTICE "In seek");
     return 0;
 }
 
@@ -109,8 +124,6 @@ int driver_init(void)
     printk(KERN_NOTICE "inside %s function\n", __FUNCTION__);
     return 0;
 }
-
-
 
 void driver_exit(void)
 {
