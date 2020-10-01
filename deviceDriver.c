@@ -15,6 +15,7 @@ int num_times_opened;
 int num_times_closed;
 static void *buffer;
 
+
 int chardev_test_open(struct inode *dev, struct file* f) 
 {
     num_times_opened++;
@@ -33,15 +34,20 @@ ssize_t chardev_test_write(struct file *f,
                            const char __user *user_buf, 
                            size_t buf_size, loff_t *pos)
 {
-    // handle position differently here
-    int result = copy_from_user(buffer, user_buf, BUFFER_SIZE);
-    if(result != 0) {
-        printk(KERN_NOTICE "Wrote %d bytes\n", BUFFER_SIZE);
-        *pos += buf_size;
+
+    char *message = buffer;
+    int bytes_written = 0; 
+    // TODO: handle position differently here
+    int result = copy_from_user(message, user_buf, BUFFER_SIZE);
+    if(result == 0) {
+        bytes_written = strlen(message);
+        printk(KERN_NOTICE "Wrote %d bytes: %s\n", bytes_written, message);
+        *pos += bytes_written;
+        buffer_filled += bytes_written;
     } else {
-        printk(KERN_ALERT "Failed to write");
+        printk(KERN_ALERT "Failed to write %d bytes: %s\n", result, message);
     }
-    return buf_size;
+    return bytes_written;
 }
 
 ssize_t chardev_test_read(struct file *f, 
@@ -51,14 +57,18 @@ ssize_t chardev_test_read(struct file *f,
 {
     int bytes_read = 0;
     int result = copy_to_user(user_buf, buffer, BUFFER_SIZE);
-    if(result != 0) {
-        printk(KERN_NOTICE "Read %d bytes\n", BUFFER_SIZE);
-        bytes_read = buf_size;
-    } else {
-        printk(KERN_ALERT "Failed to read");
-    }
+    char *message = buffer;
 
-    *pos += buf_size;
+    if(result == 0) {
+        bytes_read = strlen(message);
+        printk(KERN_NOTICE "Read %d bytes\n", bytes_read);
+        printk(KERN_NOTICE "Message: %s\n", message);
+        *pos += bytes_read;
+        return 0;
+    } else {
+        printk(KERN_ALERT "Failed to read %d bytes\n", result);
+        return -1;
+    }
    
     return bytes_read;
 }
@@ -84,7 +94,7 @@ int driver_init(void)
     };
     buffer = kmalloc(BUFFER_SIZE, GFP_KERNEL);
     if(buffer == NULL) {
-        printk(KERN_ALERT "Buffer not allocated");
+        printk(KERN_ALERT "Buffer not allocated\n");
         return -1;
     }
 
