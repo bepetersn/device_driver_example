@@ -118,7 +118,8 @@ int driver_init(void)
 	.open    = chardev_test_open, 
 	.release = chardev_test_close,
         .write   = chardev_test_write,
-        .read    = chardev_test_read
+        .read    = chardev_test_read,
+        .llseek  = chardev_test_seek
     };
     buffer = kzalloc(BUFFER_SIZE, GFP_KERNEL);
     if(buffer == NULL) {
