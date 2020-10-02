@@ -41,6 +41,7 @@ ssize_t chardev_test_write(struct file *f,
     char *buff_contents = buffer;
     int success;
     int int_offset = (int) *offset;
+    int bytes_available = BUFFER_SIZE - int_offset;
 
     // Don't allow specifying an invalid offset into the buffer
     if(int_offset == BUFFER_SIZE) { return 0; }
@@ -71,6 +72,8 @@ ssize_t chardev_test_read(struct file *f,
                           size_t buf_size, loff_t *offset)
 {
     int success;
+    int int_offset = (int) *offset;
+    int bytes_available = BUFFER_SIZE - int_offset;
 
     // TODO: Consider +1 because of zero-base and/or \0 
     if(*offset == BUFFER_SIZE) { return 0; }
