@@ -69,35 +69,32 @@ ssize_t chardev_test_read(struct file *f,
                           char __user *user_buf, 
                           size_t buf_size, loff_t *offset)
 {
-    ssize_t bytes_available = 0;
     int success;
     char *buff_contents = buffer;
 
+    // TODO: Consider +1 because of zero-base and/or \0 
     // Don't allow specifying an invalid offset into the buffer
-    if(*offset < 0 || *offset >= BUFFER_SIZE) 
+    if(*offset < 0 || *offset > BUFFER_SIZE) 
     {
         printk(KERN_ALERT "Invalid offset supplied to read\n");
         return -EINVAL;
     }
-
-    // Stop reading bytes when the offset reaches the total # of non-NULL bytes
-    bytes_available = strlen(buff_contents);
-    if(*offset >= bytes_available) {
+    if(*offset == BUFFER_SIZE) {
         return 0;
     }
 
     // copy_to_user takes args: to, from, n
-    success = copy_to_user(user_buf, buffer, bytes_available);
+    success = copy_to_user(user_buf, buffer, buf_size);
     if(success != 0) 
     {
         printk(KERN_NOTICE "Failed to read\n");
         return -1;
     }
-    printk(KERN_NOTICE "Read %li bytes\n", bytes_available);
+    printk(KERN_NOTICE "Read %li bytes\n", buf_size);
 
     // Increment offset to track what we have read so far
-    *offset += bytes_available;
-    return bytes_available;
+    *offset += buf_size;
+    return buf_size;
 }
 
 loff_t chardev_test_seek(struct file *dev, loff_t offset, int whence)
