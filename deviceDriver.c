@@ -37,6 +37,7 @@ ssize_t chardev_test_write(struct file *f,
                            size_t buf_size, loff_t *offset)
 {
 
+    // TODO: buf -> buff everywhere
     // Point a string at our (void *) buffer, to begin working with it
     char *buff_contents = buffer;
     int success;
