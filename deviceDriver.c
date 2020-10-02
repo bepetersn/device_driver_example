@@ -41,8 +41,11 @@ ssize_t chardev_test_write(struct file *f,
     size_t bytes_written = 0; 
     int num_failed_bytes;
 
-    if(*offset > BUFFER_SIZE) {
-        return -EFAULT;
+    // Don't allow specifying an invalid offset into the buffer
+    if(*offset < 0 || *offset > BUFFER_SIZE)                          
+    {
+        printk(KERN_ALERT "Invalid offset supplied to read");
+        return -EINVAL;
     }
 
     num_failed_bytes = copy_from_user(buff_contents, user_buf, BUFFER_SIZE);
@@ -62,18 +65,22 @@ ssize_t chardev_test_read(struct file *f,
                           char __user *user_buf, 
                           size_t buf_size, loff_t *offset)
 {
-    int num_bytes_remaining;
     int num_failed_bytes;     
     ssize_t bytes_read = 0;
     char *buff_contents = buffer;
 
-    // Don't allow specifying an offset bigger than BUFFER_SIZE
-    // Take the current offset, subtract it from total buffer, 
-    // and if anything remains, we can give exactly that.
-    num_bytes_remaining = BUFFER_SIZE - ((int) *offset);
-    num_failed_bytes = copy_to_user(user_buf, buffer, num_bytes_remaining);
+    // Don't allow specifying an invalid offset into the buffer
+    if(*offset < 0 || *offset > BUFFER_SIZE) 
+    {
+        printk(KERN_ALERT "Invalid offset supplied to read");
+        return -EINVAL;
+    }
+    // TODO: Instead of trying to figure out how many bytes
+    //       to read out of the buffer ahead of time, just 
+    //       loop over it until we reach a NULL character
+    num_failed_bytes = copy_to_user(user_buf, buffer, BUFFER_SIZE);
     if(num_failed_bytes == 0) {
-        bytes_read = num_bytes_remaining;
+        bytes_read = BUFFER_SIZE;
         printk(KERN_NOTICE "Read %li bytes\n", bytes_read);
         printk(KERN_NOTICE "Contents: %s\n", buff_contents);
         *offset += bytes_read;
