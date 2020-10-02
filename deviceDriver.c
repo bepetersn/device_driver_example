@@ -43,7 +43,8 @@ ssize_t chardev_test_write(struct file *f,
     int int_offset = (int) *offset;
 
     // Don't allow specifying an invalid offset into the buffer
-    if(int_offset < 0 || int_offset >= BUFFER_SIZE)                          
+    if(int_offset == BUFFER_SIZE) { return 0; }
+    if(int_offset < 0 || int_offset > BUFFER_SIZE)                          
     {
         printk(KERN_ALERT "Invalid offset supplied to read\n");
         return -EINVAL;
@@ -73,14 +74,12 @@ ssize_t chardev_test_read(struct file *f,
     char *buff_contents = buffer;
 
     // TODO: Consider +1 because of zero-base and/or \0 
+    if(*offset == BUFFER_SIZE) { return 0; }
     // Don't allow specifying an invalid offset into the buffer
     if(*offset < 0 || *offset > BUFFER_SIZE) 
     {
         printk(KERN_ALERT "Invalid offset supplied to read\n");
         return -EINVAL;
-    }
-    if(*offset == BUFFER_SIZE) {
-        return 0;
     }
 
     // copy_to_user takes args: to, from, n
