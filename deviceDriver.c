@@ -50,6 +50,7 @@ ssize_t chardev_test_write(struct file *f,
     }
 
     // copy_from_user takes args: to, from, n
+    // TODO: Remove newline from end
     success = copy_from_user(buff_contents, user_buf, buf_size);
     if(success == 0) {
         printk(KERN_NOTICE "Wrote %li bytes: '%s'\n", buf_size, buff_contents);
