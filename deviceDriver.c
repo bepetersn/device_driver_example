@@ -53,7 +53,6 @@ ssize_t chardev_test_write(struct file *f,
         bytes_written = strlen(buff_contents);
         printk(KERN_NOTICE "Wrote %li bytes: %s\n", bytes_written, buff_contents);
         *offset += bytes_written;
-        // buff_content_endpos += bytes_written;
     } else {
         printk(KERN_ALERT "Failed to write %d bytes: %s\n", num_failed_bytes, buff_contents);
         return -1;
@@ -65,9 +64,9 @@ ssize_t chardev_test_read(struct file *f,
                           char __user *user_buf, 
                           size_t buf_size, loff_t *offset)
 {
-    int num_failed_bytes;     
+    int success;     
     ssize_t bytes_read = 0;
-    char *buff_contents = buffer;
+    char *read_head = buffer;
 
     // Don't allow specifying an invalid offset into the buffer
     if(*offset < 0 || *offset > BUFFER_SIZE) 
@@ -75,21 +74,23 @@ ssize_t chardev_test_read(struct file *f,
         printk(KERN_ALERT "Invalid offset supplied to read");
         return -EINVAL;
     }
-    // TODO: Instead of trying to figure out how many bytes
-    //       to read out of the buffer ahead of time, just 
-    //       loop over it until we reach a NULL character
-    num_failed_bytes = copy_to_user(user_buf, buffer, BUFFER_SIZE);
-    if(num_failed_bytes == 0) {
-        bytes_read = BUFFER_SIZE;
-        printk(KERN_NOTICE "Read %li bytes\n", bytes_read);
-        printk(KERN_NOTICE "Contents: %s\n", buff_contents);
-        *offset += bytes_read;
-        return bytes_read;
-    } else {
-        printk(KERN_ALERT "Failed to read %d bytes\n", num_failed_bytes);
+
+    // Instead of trying to figure out how many bytes
+    // to read out of the buffer ahead of time, just 
+    // loop over it until we reach a NULL character
+
+    for(success=0; success && *read_head; read_head++) 
+    {
+        success = put_user(user_buf, read_head);
+        bytes_read++
+    }
+    if(!success) 
+    {
+        printk(KERN_NOTICE "Failed to read");
         return -1;
     }
-   
+    printk(KERN_NOTICE "Read %li bytes\n", bytes_read);
+    *offset += bytes_read;
     return bytes_read;
 }
 
