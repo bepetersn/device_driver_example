@@ -49,9 +49,10 @@ ssize_t chardev_test_write(struct file *f,
         bytes_written = strlen(buff_contents);
         printk(KERN_NOTICE "Wrote %li bytes: %s\n", bytes_written, buff_contents);
         *offset += bytes_written;
-        buff_content_endpos += bytes_written;
+        // buff_content_endpos += bytes_written;
     } else {
         printk(KERN_ALERT "Failed to write %d bytes: %s\n", num_failed_bytes, buff_contents);
+        return -1;
     }
     return bytes_written;
 }
@@ -61,27 +62,17 @@ ssize_t chardev_test_read(struct file *f,
                           size_t buf_size, loff_t *offset)
 {
     int num_bytes_remaining;
-    size_t bytes_read = 0;
     int num_failed_bytes;     
+    ssize_t bytes_read = 0;
     char *buff_contents = buffer;
 
-    // NOTE: user_buf's buf_size > BUFFER_SIZE in practice.
-    // If this was not so, we would need to worry about
-    // about consecutive calls to this function, but 
-    // as it is, we can just give everything to user_buf
-    // in one go every time.
-
-    // Take the end of the buffer content, subtract
-    // our offset, and if anything remains, we can 
-    // give exactly that.
-    num_bytes_remaining = buff_content_endpos - ((int) *offset);
-    if(num_bytes_remaining <= 0) {
-        return 0;
-    }
-    printk(KERN_WARNING "Buff content endpos: %d, Num bytes remaining: %d\n", buff_content_endpos, num_bytes_remaining);
+    // Don't allow specifying an offset bigger than BUFFER_SIZE
+    // Take the current offset, subtract it from total buffer, 
+    // and if anything remains, we can give exactly that.
+    num_bytes_remaining = BUFFER_SIZE - ((int) *offset);
     num_failed_bytes = copy_to_user(user_buf, buffer, num_bytes_remaining);
     if(num_failed_bytes == 0) {
-        bytes_read = strlen(buff_contents);
+        bytes_read = num_bytes_remaining;
         printk(KERN_NOTICE "Read %li bytes\n", bytes_read);
         printk(KERN_NOTICE "Contents: %s\n", buff_contents);
         *offset += bytes_read;
@@ -114,7 +105,7 @@ int driver_init(void)
         .write   = chardev_test_write,
         .read    = chardev_test_read
     };
-    buffer = kmalloc(BUFFER_SIZE, GFP_KERNEL);
+    buffer = kzalloc(BUFFER_SIZE, GFP_KERNEL);
     if(buffer == NULL) {
         printk(KERN_ALERT "Buffer not allocated\n");
         return -1;
