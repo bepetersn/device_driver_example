@@ -15,7 +15,6 @@ MODULE_LICENSE("GPL");
 int num_times_opened;
 int num_times_closed;
 static void *buffer;
-int buff_content_endpos = 0;
 
 
 int chardev_test_open(struct inode *dev, struct file* f) 
