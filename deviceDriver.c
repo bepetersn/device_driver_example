@@ -106,6 +106,7 @@ loff_t chardev_test_seek(struct file *dev, loff_t offset, int whence)
     // - or otherwise, set to offset
     // - Deal with out-of-buffer issues
     printk(KERN_NOTICE "In seek\n");
+    // HINT: maybe use dev->f_pos;
     return 0;
 }
 
