@@ -8,8 +8,9 @@
 MODULE_AUTHOR("Brian Peterson");
 MODULE_LICENSE("GPL");
 
-#define CHARDEV_TEST_MAJOR_NUMBER 261
+#define MAJOR_NUMBER 261
 #define BUFFER_SIZE 1024
+#define DRIVER_NAME "chardev_test"
 
 int num_times_opened;
 int num_times_closed;
@@ -111,14 +112,14 @@ int driver_init(void)
         return -1;
     }
 
-    register_chrdev(CHARDEV_TEST_MAJOR_NUMBER, "chardev_test", &fops);
+    register_chrdev(MAJOR_NUMBER, DRIVER_NAME, &fops);
     printk(KERN_NOTICE "inside %s function\n", __FUNCTION__);
     return 0;
 }
 
 void driver_exit(void)
 {
-    unregister_chrdev(CHARDEV_TEST_MAJOR_NUMBER, "chardev_test");
+    unregister_chrdev(MAJOR_NUMBER, DRIVER_NAME);
     kfree(buffer);
     printk(KERN_NOTICE "inside %s function\n", __FUNCTION__);
 }
