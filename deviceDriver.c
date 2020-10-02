@@ -71,7 +71,6 @@ ssize_t chardev_test_read(struct file *f,
                           size_t buf_size, loff_t *offset)
 {
     int success;
-    char *buff_contents = buffer;
 
     // TODO: Consider +1 because of zero-base and/or \0 
     if(*offset == BUFFER_SIZE) { return 0; }
