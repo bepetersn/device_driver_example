@@ -37,61 +37,69 @@ ssize_t chardev_test_write(struct file *f,
                            size_t buf_size, loff_t *offset)
 {
 
+    // Point a string at our (void *) buffer, to begin working with it
     char *buff_contents = buffer;
-    size_t bytes_written = 0; 
-    int num_failed_bytes;
+    size_t bytes_available;
+    int success;
 
     // Don't allow specifying an invalid offset into the buffer
-    if(*offset < 0 || *offset > BUFFER_SIZE)                          
+    if(*offset < 0 || *offset >= BUFFER_SIZE)                          
     {
-        printk(KERN_ALERT "Invalid offset supplied to read");
+        printk(KERN_ALERT "Invalid offset supplied to read\n");
         return -EINVAL;
     }
 
-    num_failed_bytes = copy_from_user(buff_contents, user_buf, BUFFER_SIZE);
-    if(num_failed_bytes == 0) {
-        bytes_written = strlen(buff_contents);
-        printk(KERN_NOTICE "Wrote %li bytes: %s\n", bytes_written, buff_contents);
-        *offset += bytes_written;
+    // Get the number of bytes sent from caller
+    bytes_available = strlen(user_buf);
+
+    // copy_from_user takes args: to, from, n
+    success = copy_from_user(buff_contents, user_buf, bytes_available);
+    if(success == 0) {
+        printk(KERN_NOTICE "Wrote %li bytes: %s\n", bytes_available, buff_contents);
+        
+        // Increment the offset by how much was written to our file 
+        *offset += bytes_available;
     } else {
-        printk(KERN_ALERT "Failed to write %d bytes: %s\n", num_failed_bytes, buff_contents);
+        printk(KERN_ALERT "Failed to write");
         return -1;
     }
-    return bytes_written;
+    // This is how much we wrote
+    return bytes_available;
 }
 
 ssize_t chardev_test_read(struct file *f, 
                           char __user *user_buf, 
                           size_t buf_size, loff_t *offset)
 {
-    int success;     
-    ssize_t bytes_read = 0;
-    char *read_head = buffer;
+    ssize_t bytes_available = 0;
+    int success;
+    char *buff_contents = buffer;
 
     // Don't allow specifying an invalid offset into the buffer
-    if(*offset < 0 || *offset > BUFFER_SIZE) 
+    if(*offset < 0 || *offset >= BUFFER_SIZE) 
     {
-        printk(KERN_ALERT "Invalid offset supplied to read");
+        printk(KERN_ALERT "Invalid offset supplied to read\n");
         return -EINVAL;
     }
 
-    // Instead of trying to figure out how many bytes
-    // to read out of the buffer ahead of time, just 
-    // loop over it until we reach a NULL character
-
-    for(success=0; success && *read_head; read_head++) 
-    {
-        success = put_user(user_buf, read_head);
-        bytes_read++
+    // Stop reading bytes when the offset reaches the total # of non-NULL bytes
+    bytes_available = strlen(buff_contents);
+    if(*offset >= bytes_available) {
+        return 0;
     }
-    if(!success) 
+
+    // copy_to_user takes args: to, from, n
+    success = copy_to_user(user_buf, buffer, bytes_available);
+    if(success != 0) 
     {
-        printk(KERN_NOTICE "Failed to read");
+        printk(KERN_NOTICE "Failed to read\n");
         return -1;
     }
-    printk(KERN_NOTICE "Read %li bytes\n", bytes_read);
-    *offset += bytes_read;
-    return bytes_read;
+    printk(KERN_NOTICE "Read %li bytes\n", bytes_available);
+
+    // Increment offset to track what we have read so far
+    *offset += bytes_available;
+    return bytes_available;
 }
 
 loff_t chardev_test_seek(struct file *dev, loff_t offset, int whence)
@@ -100,7 +108,7 @@ loff_t chardev_test_seek(struct file *dev, loff_t offset, int whence)
     // - subtract or add seek if appropriate
     // - or otherwise, set to offset
     // - Deal with out-of-buffer issues
-    printk(KERN_NOTICE "In seek");
+    printk(KERN_NOTICE "In seek\n");
     return 0;
 }
 
