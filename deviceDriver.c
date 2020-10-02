@@ -40,9 +40,10 @@ ssize_t chardev_test_write(struct file *f,
     // Point a string at our (void *) buffer, to begin working with it
     char *buff_contents = buffer;
     int success;
+    int int_offset = (int) *offset;
 
     // Don't allow specifying an invalid offset into the buffer
-    if(*offset < 0 || *offset >= BUFFER_SIZE)                          
+    if(int_offset < 0 || int_offset >= BUFFER_SIZE)                          
     {
         printk(KERN_ALERT "Invalid offset supplied to read\n");
         return -EINVAL;
