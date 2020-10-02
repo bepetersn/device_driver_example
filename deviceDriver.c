@@ -39,7 +39,6 @@ ssize_t chardev_test_write(struct file *f,
 
     // Point a string at our (void *) buffer, to begin working with it
     char *buff_contents = buffer;
-    size_t bytes_available;
     int success;
 
     // Don't allow specifying an invalid offset into the buffer
@@ -49,22 +48,19 @@ ssize_t chardev_test_write(struct file *f,
         return -EINVAL;
     }
 
-    // Get the number of bytes sent from caller
-    bytes_available = strlen(user_buf);
-
     // copy_from_user takes args: to, from, n
-    success = copy_from_user(buff_contents, user_buf, bytes_available);
+    success = copy_from_user(buff_contents, user_buf, buf_size);
     if(success == 0) {
-        printk(KERN_NOTICE "Wrote %li bytes: %s\n", bytes_available, buff_contents);
+        printk(KERN_NOTICE "Wrote %li bytes: '%s'\n", buf_size, buff_contents);
         
         // Increment the offset by how much was written to our file 
-        *offset += bytes_available;
+        *offset += buf_size;
     } else {
         printk(KERN_ALERT "Failed to write");
         return -1;
     }
-    // This is how much we wrote
-    return bytes_available;
+    // Caller expects this to be how much we wrote
+    return buf_size;
 }
 
 ssize_t chardev_test_read(struct file *f, 
