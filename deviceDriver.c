@@ -51,7 +51,7 @@ ssize_t chardev_test_write(struct file *f,
         return -1;
     }
     // copy_from expects a (char *) to write into 
-    if(copy_from_user(buffer_contents /* offset_contents */, user_buf, buf_size) == 0) {
+    if(copy_from_user(buffer_contents, user_buf, buf_size) == 0) {
         printk(KERN_NOTICE "Wrote %li bytes: '%s'\n", buf_size, buff_contents);
         *offset += buf_size; // Allow multiple writes per open
         return buf_size; // Caller expects # bytes written
