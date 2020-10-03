@@ -36,66 +36,55 @@ ssize_t chardev_test_write(struct file *f,
                            size_t buf_size, loff_t *offset)
 {
 
-    // TODO: buf -> buff everywhere
-    // Point a string at our (void *) buffer, to begin working with it
-    char *buff_contents = buffer;
-    int success;
     int int_offset = (int) *offset;
     int bytes_available = BUFFER_SIZE - int_offset;
+    char *buff_contents = buffer; // Get access to our buffer 
+    // Pointer arithmetic lets us start writing at caller's offset
+    char *offset_contents = buff_contents + int_offset; 
 
-    // Don't allow specifying an invalid offset into the buffer
-    if(int_offset == BUFFER_SIZE) { return 0; }
-    if(int_offset < 0 || int_offset > BUFFER_SIZE)                          
-    {
-        printk(KERN_ALERT "Invalid offset supplied to read\n");
-        return -EINVAL;
+    if(int_offset > BUFFER_SIZE || int_offset < 0) {
+        printk(KERN_ALERT "Invalid offset supplied\n");
+        return -1;
     }
-
-    // copy_from_user takes args: to, from, n
-    // TODO: Remove newline from end
-    success = copy_from_user(buff_contents, user_buf, buf_size);
-    if(success == 0) {
+    if (bytes_available < buf_size) {
+        printk(KERN_ALERT "Invalid length buffer\n"); 
+        return -1;
+    }
+    // copy_from expects a (char *) to write into 
+    if(copy_from_user(buffer_contents /* offset_contents */, user_buf, buf_size) == 0) {
         printk(KERN_NOTICE "Wrote %li bytes: '%s'\n", buf_size, buff_contents);
-        
-        // Increment the offset by how much was written to our file 
-        *offset += buf_size;
+        *offset += buf_size; // Allow multiple writes per open
+        return buf_size; // Caller expects # bytes written
     } else {
         printk(KERN_ALERT "Failed to write");
         return -1;
     }
-    // Caller expects this to be how much we wrote
-    return buf_size;
 }
 
 ssize_t chardev_test_read(struct file *f, 
                           char __user *user_buf, 
                           size_t buf_size, loff_t *offset)
 {
-    int success;
     int int_offset = (int) *offset;
     int bytes_available = BUFFER_SIZE - int_offset;
 
-    // TODO: Consider +1 because of zero-base and/or \0 
-    if(*offset == BUFFER_SIZE) { return 0; }
-    // Don't allow specifying an invalid offset into the buffer
-    if(*offset < 0 || *offset > BUFFER_SIZE) 
-    {
-        printk(KERN_ALERT "Invalid offset supplied to read\n");
-        return -EINVAL;
-    }
-
-    // copy_to_user takes args: to, from, n
-    success = copy_to_user(user_buf, buffer, buf_size);
-    if(success != 0) 
-    {
-        printk(KERN_NOTICE "Failed to read\n");
+    if(int_offset > BUFFER_SIZE || int_offset < 0) {
+        printk(KERN_ALERT "Invalid offset supplied\n");
         return -1;
     }
-    printk(KERN_NOTICE "Read %li bytes\n", buf_size);
-
-    // Increment offset to track what we have read so far
-    *offset += buf_size;
-    return buf_size;
+    if (bytes_available < buf_size) {
+        printk(KERN_ALERT "Invalid length buffer\n");
+        return -1;
+    }
+    // copy_to expects buffer to be a (void *)
+    if(copy_to_user(user_buf, buffer, buf_size)) {
+        printk(KERN_NOTICE "Read %li bytes\n", buf_size);
+        *offset += buf_size; // Track what we have read so far
+        return buf_size; // Caller expects # bytes read 
+    } else {
+        printk(KERN_NOTICE "Failed to read\n");
+        return -1;
+    } 
 }
 
 loff_t chardev_test_seek(struct file *dev, loff_t offset, int whence)
