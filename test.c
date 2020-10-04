@@ -17,7 +17,7 @@ int getNumber(int nDigits, char *message) {
             return -1;
         }
         a = atoi(buf);
-    } while (a == 0); // repeat until we get a valid number
+    } while (a == 0); // Repeat until we get a number
     return a;
 } 
 
@@ -26,18 +26,15 @@ int readCommand(int fd, char *buffer) {
     int numBytesToRead;
     numBytesToRead = \
             getNumber(4, "Enter the number of bytes you want to read: ");
-    if(numBytesToRead == 0) {
-        perror("You either entered an invalid number or requested 0 bytes. Try again next time.");
-        return -1;
+    if(numBytesToRead) {
+        buffer = calloc(numBytesToRead, sizeof(char));
+        // TODO: Why isn't offset specified anywhere? How do I specify it?
+        if(!read(fd, buffer, numBytesToRead)) {
+            puts("Read failed");
+            return -1;
+        }
+        puts(buffer);
     }
-
-    buffer = calloc(numBytesToRead, sizeof(char));
-    // TODO: Why isn't offset specified anywhere? How do I specify it?
-    if(!read(fd, buffer, numBytesToRead)) {
-        puts("Read failed");
-        return -1;
-    }
-    puts(buffer);
 }
 
 int writeCommand(int fd, char *buffer) {}
