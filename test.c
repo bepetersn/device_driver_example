@@ -3,72 +3,76 @@
 #include <unistd.h>
 #include <string.h>
 
+static const int BUFFER_SIZE = 1024;
 
 int getNumber(int nDigits, char *message) {
    
     int a;
     char buf[nDigits+1];
 
-    do
-    {
-        puts(message);
-        if (!fgets(buf, nDigits, stdin))
-        {
+    printf("%s", message);
+    do {
+        if (!fgets(buf, nDigits, stdin)) {
             // Reading input failed
             return -1;
         }
         a = atoi(buf);
-    } while (a == 0); // repeat until we got a valid number
+    } while (a == 0); // repeat until we get a valid number
     return a;
 } 
 
+
+int readCommand(int fd, char *buffer) {
+    int numBytesToRead;
+    numBytesToRead = \
+            getNumber(4, "Enter the number of bytes you want to read: ");
+    if(numBytesToRead == 0) {
+        perror("You either entered an invalid number or requested 0 bytes. Try again next time.");
+        return -1;
+    }
+
+    buffer = calloc(numBytesToRead, sizeof(char));
+    // TODO: Why isn't offset specified anywhere? How do I specify it?
+    if(!read(fd, buffer, numBytesToRead)) {
+        puts("Read failed");
+        return -1;
+    }
+    puts(buffer);
+}
+
+int writeCommand(int fd, char *buffer) {}
+int seekCommand(int fd, char *buffer) {}
+
 int main(int argc, int *argv[]) {
     
+    int fd;
     FILE *fp;
-    const int BUFFER_SIZE = 1024;
     char *buffer;
-    int success;
-
-    /* For getting a command*/
     char testCommand[2];
-    /* For read operation */
-    int numBytesToRead;
-    /* For write operation */
-    char* dataToWrite;
-    /* For seek operation */
-    loff_t offset;
-    int whence;    
 
     fp = fopen("/dev/chardev_test", "w+");
     if(fp == NULL) {
         perror("Error opening file");
         return -1;
     }
-    printf("Enter a command: ");
-    fgets(testCommand, 2, stdin); 
-    if(testCommand == "r") {
-   
-        numBytesToRead = getNumber(4, "Enter the number of bytes you want to read: ");
-        if(numBytesToRead == 0) 
-        {
-            perror("You either entered an invalid number or requested 0 bytes. Try again next time.");  
-            return -1;
-        }
-
-        buffer = calloc(numBytesToRead, sizeof(char));
-        // TODO: Why isn't offset specified anywhere? How do I specify it?
-        success = read(fileno(fp), buffer, numBytesToRead); 
-        if(!success) {
-            puts("Read failed");
-            return -1;
-        }
-        puts(buffer);
+    fd = fileno(fp);
+    while(1) {
+        printf("Enter a command: ");
+        fgets(testCommand, 2, stdin); 
+        switch(testCommand[0]) {
+            case 'r':
+                readCommand(fd, buffer);
+            case 'w':
+                writeCommand(fd, buffer);
+            case 's':
+                seekCommand(fd, buffer);
+            case 'e':
+                exit(0);
+            default:
+                ; // Ignore
+        }    
     }
-    if(testCommand == "w") {
-        
-        printf("Enter data you want to write: ");
-        //fgets("%d", &dataToWrite);
-    }
+    
     fclose(fp);
     return 0;
 }
