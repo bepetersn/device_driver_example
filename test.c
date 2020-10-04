@@ -14,7 +14,7 @@ int getNumber(int nDigits, char *message) {
     do {
         if (!fgets(buf, nDigits+1, stdin)) {
             // Reading input failed
-            return -1;
+            exit(-1);
         }
         a = atoi(buf);
     } while (a == 0 && buf != "0"); // Repeat until we get an int
@@ -55,7 +55,7 @@ int main(int argc, int *argv[]) {
     int fd;
     FILE *fp;
     char *buffer;
-    char testCommand[2];
+    char testCommand;
 
     fp = fopen("/dev/chardev_test", "w+");
     if(fp == NULL) {
@@ -65,8 +65,9 @@ int main(int argc, int *argv[]) {
     fd = fileno(fp);
     while(1) {
         printf("Enter a command: ");
-        fgets(testCommand, 2, stdin); 
-        switch(testCommand[0]) {
+        testCommand = getchar(); 
+        while(getchar() != '\n'); // Mostly clear buffer; sometimes fails because C
+        switch(testCommand) {
             case 'r':
                 readCommand(fd, buffer);
                 break;
