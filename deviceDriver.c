@@ -105,11 +105,12 @@ loff_t chardev_test_seek(struct file *filep, loff_t offset, int whence)
         return -EINVAL;
     }
     // Seeking outside the buffer is not allowed
-    if(requested >= buf_size_loff || requested < 0) {
-        printk(KERN_NOTICE "Invalid offset in seek\n");
+    if(requested > buf_size_loff || requested < 0) {
+        printk(KERN_NOTICE "Invalid offset in seek: %lld\n", requested);
         return -1;
     }
     filep->f_pos = requested;
+    printk(KERN_NOTICE "Seeked to %lld\n", requested);
     return 0;
 }
 
