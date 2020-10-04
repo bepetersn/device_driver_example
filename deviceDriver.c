@@ -17,14 +17,14 @@ int num_times_closed;
 static void *buffer;
 
 
-int chardev_test_open(struct inode *dev, struct file* f) 
+int chardev_test_open(struct inode *filep, struct file* f) 
 {
     num_times_opened++;
     printk(KERN_NOTICE "Num times opened: %d\n", num_times_opened); 
     return 0;
 }
 
-int chardev_test_close(struct inode *dev , struct file *f)
+int chardev_test_close(struct inode *filep , struct file *f)
 {
     num_times_closed++;
     printk(KERN_NOTICE "Num times closed: %d\n", num_times_closed);
@@ -87,14 +87,29 @@ ssize_t chardev_test_read(struct file *f,
     } 
 }
 
-loff_t chardev_test_seek(struct file *dev, loff_t offset, int whence)
+loff_t chardev_test_seek(struct file *filep, loff_t offset, int whence)
 {
-    // - Deal with whence
-    // - subtract or add seek if appropriate
-    // - or otherwise, set to offset
-    // - Deal with out-of-buffer issues
-    printk(KERN_NOTICE "In seek\n");
-    // HINT: maybe use dev->f_pos;
+    loff_t requested;
+    loff_t buf_size_loff = (loff_t) BUFFER_SIZE;
+    switch(whence) {
+      case 0: // SEEK_SET
+        requested = offset;
+        break;
+      case 1: // SEEK_CUR -- incr / decr by offset 
+        requested = filep->f_pos + offset;
+        break;
+      case 2: // SEEK_END -- negative offset from end
+        requested = buf_size_loff - offset;
+        break; 
+      default:
+        return -EINVAL;
+    }
+    // Seeking outside the buffer is not allowed
+    if(requested >= buf_size_loff || requested < 0) {
+        printk(KERN_NOTICE "Invalid offset in seek\n");
+        return -1;
+    }
+    filep->f_pos = requested;
     return 0;
 }
 
