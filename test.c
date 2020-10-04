@@ -8,16 +8,16 @@ static const int BUFFER_SIZE = 1024;
 int getNumber(int nDigits, char *message) {
    
     int a;
-    char buf[nDigits+1];
+    char buf[nDigits+1]; // 1 for null at the end 
 
     printf("%s", message);
     do {
-        if (!fgets(buf, nDigits, stdin)) {
+        if (!fgets(buf, nDigits+1, stdin)) {
             // Reading input failed
             return -1;
         }
         a = atoi(buf);
-    } while (a == 0); // Repeat until we get a number
+    } while (a == 0 && buf != "0"); // Repeat until we get an int
     return a;
 } 
 
@@ -26,19 +26,29 @@ int readCommand(int fd, char *buffer) {
     int numBytesToRead;
     numBytesToRead = \
             getNumber(4, "Enter the number of bytes you want to read: ");
-    if(numBytesToRead) {
-        buffer = calloc(numBytesToRead, sizeof(char));
-        // TODO: Why isn't offset specified anywhere? How do I specify it?
-        if(!read(fd, buffer, numBytesToRead)) {
-            puts("Read failed");
-            return -1;
-        }
-        puts(buffer);
+    buffer = calloc(numBytesToRead, sizeof(char));
+    if(!read(fd, buffer, numBytesToRead)) {
+        puts("Read failed");
+        return -1;
     }
+    puts(buffer);
 }
 
-int writeCommand(int fd, char *buffer) {}
-int seekCommand(int fd, char *buffer) {}
+int writeCommand(int fd, char *buffer) {
+       
+}
+int seekCommand(int fd) {
+    int offset, whence, error;
+    offset = getNumber(4, "Enter an offset value: ");
+    whence = getNumber(1, "Enter a value for whence: ");
+    error = lseek(fd, offset, whence);    
+    if(!error) {
+        printf("Seek position adjusted.\n"); 
+    } else {
+        printf("Seek failed.\n");
+    }
+    return error;
+}
 
 int main(int argc, int *argv[]) {
     
@@ -59,16 +69,19 @@ int main(int argc, int *argv[]) {
         switch(testCommand[0]) {
             case 'r':
                 readCommand(fd, buffer);
+                break;
             case 'w':
                 writeCommand(fd, buffer);
+                break;
             case 's':
-                seekCommand(fd, buffer);
+                seekCommand(fd);
+                break;
             case 'e':
                 exit(0);
             default:
                 ; // Ignore
-        }    
-    }
+        }
+    }    
     
     fclose(fp);
     return 0;
