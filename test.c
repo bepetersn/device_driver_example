@@ -15,6 +15,7 @@ int getNumber(int nDigits, char *message) {
             // Reading input failed
             exit(-1);
         }
+        // TODO: not clearing buffer totally here
         a = atoi(buf);
     } while (a == 0 && buf != "0"); // Repeat until we get an int
     return a;

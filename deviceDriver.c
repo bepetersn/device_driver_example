@@ -67,6 +67,8 @@ ssize_t chardev_test_read(struct file *f,
 {
     int int_offset = (int) *offset;
     int bytes_available = BUFFER_SIZE - int_offset;
+    // Pointer arithmetic lets us start writing at caller's offset
+    char *offset_buffer = buffer + int_offset; 
 
     if(int_offset > BUFFER_SIZE || int_offset < 0) {
         printk(KERN_ALERT "Invalid offset supplied\n");
