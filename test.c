@@ -98,6 +98,7 @@ int main(int argc, int *argv[]) {
                 break;
             case 'o':
                 showOffset(fd);
+                break;
             case 'e':
                 exit(0);
             default:
