@@ -111,7 +111,7 @@ loff_t chardev_test_seek(struct file *filep, loff_t offset, int whence)
     }
     filep->f_pos = requested;
     printk(KERN_NOTICE "Seeked to %lld\n", requested);
-    return 0;
+    return requested;
 }
 
 
